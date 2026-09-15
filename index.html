@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mario Rivera — AI Data Annotator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#171532;
+    --bg-deep:#100e26;
+    --surface:#211e42;
+    --surface-2:#2a2650;
+    --line:#3a3568;
+    --text:#f2eefc;
+    --text-dim:#b9b3dd;
+    --pink:#ff6ea3;
+    --green:#5fe8b8;
+    --amber:#ffcf5c;
+    --blue:#7ab8ff;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Space Grotesk', sans-serif;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  .mono{font-family:'IBM Plex Mono', monospace;}
+  a{color:inherit;}
+
+  /* background texture */
+  body{
+    background-image:
+      radial-gradient(circle at 12% 8%, rgba(255,110,163,0.10), transparent 40%),
+      radial-gradient(circle at 88% 4%, rgba(95,232,184,0.08), transparent 38%),
+      radial-gradient(circle at 50% 100%, rgba(122,184,255,0.08), transparent 45%);
+  }
+
+  .wrap{max-width:920px; margin:0 auto; padding:0 24px;}
+
+  /* NAV */
+  nav{
+    position:sticky; top:0; z-index:20;
+    background:rgba(23,21,50,0.85);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);
+  }
+  nav .wrap{
+    display:flex; align-items:center; justify-content:space-between;
+    height:64px;
+  }
+  .logo{font-weight:700; font-size:1.1rem; letter-spacing:0.02em;}
+  .logo span{color:var(--pink);}
+  .navlinks{display:flex; gap:28px; font-size:0.92rem;}
+  .navlinks a{text-decoration:none; color:var(--text-dim); transition:color .2s;}
+  .navlinks a:hover{color:var(--text);}
+
+  /* HERO */
+  header.hero{padding:88px 0 64px;}
+  .available{
+    display:inline-flex; align-items:center; gap:8px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:0.78rem;
+    color:var(--green);
+    background:rgba(95,232,184,0.1);
+    border:1px solid rgba(95,232,184,0.35);
+    padding:5px 12px;
+    border-radius:100px;
+    margin-bottom:28px;
+  }
+  .available::before{
+    content:""; width:7px; height:7px; border-radius:50%;
+    background:var(--green);
+    box-shadow:0 0 0 3px rgba(95,232,184,0.25);
+  }
+  .hero h1{
+    font-size:clamp(2.1rem, 5vw, 3.4rem);
+    font-weight:700;
+    line-height:1.12;
+    letter-spacing:-0.01em;
+    max-width:15ch;
+  }
+  .hero .role{
+    color:var(--text-dim);
+    font-size:1.15rem;
+    margin-top:16px;
+    max-width:48ch;
+  }
+  .contact-row{
+    display:flex; flex-wrap:wrap; gap:14px 22px;
+    margin-top:28px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:0.85rem;
+    color:var(--text-dim);
+  }
+  .contact-row a{text-decoration:none; border-bottom:1px solid transparent; transition:border-color .2s, color .2s;}
+  .contact-row a:hover{color:var(--text); border-color:var(--text);}
+
+  /* ANNOTATION DEMO */
+  .annot-card{
+    margin-top:52px;
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:14px;
+    overflow:hidden;
+  }
+  .annot-bar{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:12px 18px;
+    border-bottom:1px solid var(--line);
+    font-family:'IBM Plex Mono', monospace;
+    font-size:0.75rem;
+    color:var(--text-dim);
+  }
+  .annot-dots{display:flex; gap:6px;}
+  .annot-dots span{width:9px; height:9px; border-radius:50%; background:var(--line);}
+  .annot-body{padding:26px 26px 22px; font-size:1.02rem; line-height:2.1;}
+  .tag{
+    padding:2px 8px;
+    border-radius:6px;
+    font-weight:500;
+    white-space:nowrap;
+  }
+  .tag-role{background:rgba(255,110,163,0.18); color:var(--pink); border:1px solid rgba(255,110,163,0.4);}
+  .tag-skill{background:rgba(95,232,184,0.18); color:var(--green); border:1px solid rgba(95,232,184,0.4);}
+  .tag-platform{background:rgba(122,184,255,0.18); color:var(--blue); border:1px solid rgba(122,184,255,0.4);}
+  .tag-focus{background:rgba(255,207,92,0.18); color:var(--amber); border:1px solid rgba(255,207,92,0.4);}
+  .annot-legend{
+    display:flex; flex-wrap:wrap; gap:16px 22px;
+    padding:14px 26px 20px;
+    border-top:1px dashed var(--line);
+    font-family:'IBM Plex Mono', monospace;
+    font-size:0.72rem;
+    color:var(--text-dim);
+  }
+  .legend-item{display:flex; align-items:center; gap:7px;}
+  .legend-dot{width:8px; height:8px; border-radius:2px;}
+
+  /* SECTIONS */
+  section{padding:64px 0;}
+  section.alt{background:var(--bg-deep); border-top:1px solid var(--line); border-bottom:1px solid var(--line);}
+  .eyebrow{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:0.75rem;
+    color:var(--text-dim);
+  }
+  h2{font-size:clamp(1.5rem, 3.2vw, 2rem); font-weight:600; margin-top:6px; margin-bottom:32px;}
+
+  /* SUMMARY */
+  .summary p{color:var(--text-dim); max-width:66ch; font-size:1.02rem; margin-bottom:16px;}
+  .summary strong{color:var(--text); font-weight:600;}
+
+  /* PLATFORMS - tag chips */
+  .chipgrid{display:flex; flex-wrap:wrap; gap:10px;}
+  .chip{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:0.85rem;
+    padding:8px 16px;
+    border-radius:100px;
+    border:1px solid var(--line);
+    background:var(--surface);
+    color:var(--text-dim);
+  }
+  .chip.active{
+    border-color:var(--green);
+    color:var(--green);
+    background:rgba(95,232,184,0.08);
+  }
+
+  /* EXPERIENCE TIMELINE */
+  .job{
+    display:grid;
+    grid-template-columns:160px 1fr;
+    gap:24px;
+    padding:28px 0;
+    border-top:1px solid var(--line);
+  }
+  .job:first-of-type{border-top:1px solid var(--line);}
+  .job-period{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:0.78rem;
+    color:var(--text-dim);
+    padding-top:4px;
+  }
+  .job-title{font-size:1.15rem; font-weight:600;}
+  .job-org{color:var(--pink); font-size:0.95rem; margin-top:2px; margin-bottom:14px;}
+  .job ul{list-style:none;}
+  .job li{
+    position:relative;
+    padding-left:20px;
+    margin-bottom:10px;
+    color:var(--text-dim);
+    font-size:0.96rem;
+  }
+  .job li::before{
+    content:"";
+    position:absolute; left:0; top:9px;
+    width:6px; height:6px;
+    background:var(--green);
+    border-radius:1px;
+  }
+  @media(max-width:640px){
+    .job{grid-template-columns:1fr; gap:8px;}
+  }
+
+  /* SKILLS MATRIX */
+  .skillgrid{
+    display:grid;
+    grid-template-columns:repeat(2, 1fr);
+    gap:20px;
+  }
+  @media(max-width:640px){.skillgrid{grid-template-columns:1fr;}}
+  .skillcard{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:20px 22px;
+  }
+  .skillcard h3{
+    font-size:0.95rem;
+    font-family:'IBM Plex Mono', monospace;
+    margin-bottom:14px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .skillcard h3 .sw{width:8px; height:8px; border-radius:2px; flex-shrink:0;}
+  .skillcard .tags{display:flex; flex-wrap:wrap; gap:7px;}
+  .skillcard .tags span{
+    font-size:0.78rem;
+    padding:4px 10px;
+    border-radius:100px;
+    background:var(--bg-deep);
+    color:var(--text-dim);
+    border:1px solid var(--line);
+  }
+
+  /* ACHIEVEMENTS */
+  .achieve-list{display:flex; flex-direction:column; gap:16px;}
+  .achieve-row{
+    display:flex; gap:16px;
+    padding:18px 20px;
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:10px;
+  }
+  .achieve-row .num{
+    font-family:'IBM Plex Mono', monospace;
+    color:var(--amber);
+    font-size:0.85rem;
+    flex-shrink:0;
+    padding-top:2px;
+  }
+  .achieve-row p{color:var(--text-dim); font-size:0.96rem;}
+
+  /* EDUCATION + STATUS */
+  .infogrid{display:grid; grid-template-columns:1fr 1fr; gap:24px;}
+  @media(max-width:640px){.infogrid{grid-template-columns:1fr;}}
+  .infocard{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:22px 24px;
+  }
+  .infocard h4{font-family:'IBM Plex Mono', monospace; font-size:0.78rem; color:var(--text-dim); margin-bottom:10px;}
+  .infocard p{font-size:0.98rem; color:var(--text);}
+  .infocard p + p{margin-top:6px; color:var(--text-dim); font-size:0.9rem;}
+
+  /* FOOTER CTA */
+  footer{
+    padding:70px 0 40px;
+    text-align:center;
+  }
+  .cta-title{font-size:clamp(1.6rem, 4vw, 2.2rem); font-weight:700; margin-bottom:14px;}
+  .cta-sub{color:var(--text-dim); margin-bottom:30px;}
+  .cta-buttons{display:flex; gap:14px; justify-content:center; flex-wrap:wrap;}
+  .btn{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:0.85rem;
+    padding:13px 26px;
+    border-radius:100px;
+    text-decoration:none;
+    display:inline-block;
+    transition:transform .15s, box-shadow .15s;
+  }
+  .btn:hover{transform:translateY(-2px);}
+  .btn-primary{
+    background:linear-gradient(135deg, var(--pink), var(--amber));
+    color:var(--bg-deep);
+    font-weight:600;
+    box-shadow:0 8px 24px rgba(255,110,163,0.25);
+  }
+  .btn-secondary{
+    background:transparent;
+    border:1px solid var(--line);
+    color:var(--text-dim);
+  }
+  .footer-note{
+    margin-top:56px;
+    text-align:center;
+    font-size:0.82rem;
+    color:var(--text-dim);
+    opacity:0.7;
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <div class="logo">Mario<span>.</span>Rivera</div>
+    <div class="navlinks">
+      <a href="#work">Experience</a>
+      <a href="#skills">Skills</a>
+      <a href="#achievements">Achievements</a>
+      <a href="#contact">Contact</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="available">Available immediately</div>
+    <h1>Training the models that learn from human judgment.</h1>
+    <p class="role">AI data annotator and RLHF evaluator working across text, image, audio, and speech, active on Outlier, Mindrift, and Turing since early 2024.</p>
+
+    <div class="contact-row">
+      <a href="mailto:Marroquin17@myyahoo.com">Marroquin17@myyahoo.com</a>
+      <a href="tel:+12063559702">+1 (206) 355-9702</a>
+      <span>Auburn, Washington, USA</span>
+    </div>
+
+    <div class="annot-card">
+      <div class="annot-bar">
+        <span>annotation_sample.txt</span>
+        <div class="annot-dots"><span></span><span></span><span></span></div>
+      </div>
+      <div class="annot-body">
+        Since January 2024, <span class="tag tag-role">Mario Rivera</span> has worked as an
+        <span class="tag tag-focus">AI Data Annotator</span> and
+        <span class="tag tag-focus">RLHF Evaluator</span>, rating model outputs for
+        <span class="tag tag-skill">accuracy</span>,
+        <span class="tag tag-skill">relevance</span>, and
+        <span class="tag tag-skill">safety</span> on
+        <span class="tag tag-platform">Outlier</span>,
+        <span class="tag tag-platform">Mindrift</span>, and
+        <span class="tag tag-platform">Turing</span>. His work spans
+        <span class="tag tag-skill">text annotation</span>,
+        <span class="tag tag-skill">image labeling</span>, and
+        <span class="tag tag-skill">speech intent classification</span>, supporting model
+        training pipelines with consistent, high-volume output.
+      </div>
+      <div class="annot-legend">
+        <div class="legend-item"><span class="legend-dot" style="background:var(--pink)"></span>Role</div>
+        <div class="legend-item"><span class="legend-dot" style="background:var(--amber)"></span>Focus area</div>
+        <div class="legend-item"><span class="legend-dot" style="background:var(--green)"></span>Skill</div>
+        <div class="legend-item"><span class="legend-dot" style="background:var(--blue)"></span>Platform</div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<section id="summary">
+  <div class="wrap summary">
+    <div class="eyebrow">Summary</div>
+    <h2>Broad, hands-on experience across the full annotation pipeline</h2>
+    <p>Mario has worked the complete AI data pipeline: <strong>text annotation</strong>, <strong>image labeling</strong>, <strong>RLHF rating</strong>, <strong>prompt writing</strong>, <strong>transcription review</strong>, and <strong>audio and speech classification</strong>. His written English is fluent and native level, with a consistent, detail-oriented approach to quality at volume.</p>
+    <p>He is US-based and authorized to work in the United States, available immediately for remote annotation, labeling, and evaluation roles across major platforms including Outlier, Toloka, Turing, Scale AI, Appen, DataAnnotation.tech, and Remotasks.</p>
+  </div>
+</section>
+
+<section class="alt" id="platforms">
+  <div class="wrap">
+    <div class="eyebrow">Platform experience</div>
+    <h2>Active on three, open to all major platforms</h2>
+    <div class="chipgrid">
+      <span class="chip active">Outlier</span>
+      <span class="chip active">Mindrift</span>
+      <span class="chip active">Turing</span>
+      <span class="chip">Toloka</span>
+      <span class="chip">Scale AI</span>
+      <span class="chip">Appen</span>
+      <span class="chip">DataAnnotation.tech</span>
+      <span class="chip">Remotasks</span>
+    </div>
+  </div>
+</section>
+
+<section id="work">
+  <div class="wrap">
+    <div class="eyebrow">Experience</div>
+    <h2>Where the work happens</h2>
+
+    <div class="job">
+      <div class="job-period">Jan 2024 &mdash; Present</div>
+      <div>
+        <div class="job-title">AI Data Annotator &amp; RLHF Evaluator</div>
+        <div class="job-org">Outlier AI, Remote</div>
+        <ul>
+          <li>Evaluated and rated AI-generated responses for accuracy, relevance, tone, and safety, feeding directly into RLHF model improvement pipelines.</li>
+          <li>Wrote and refined SFT prompt-response pairs to improve instruction-following, creativity, and factual accuracy.</li>
+          <li>Performed classification, NER, content categorization, and sequence labeling to support NLP training.</li>
+          <li>Assessed AI-generated creative writing for coherence, originality, and stylistic accuracy.</li>
+          <li>Conducted error analysis on model outputs, flagging failure patterns to improve training data quality.</li>
+          <li>Maintained high accuracy and consistency across large annotation volumes, meeting platform benchmarks throughout.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="job">
+      <div class="job-period">Mar 2024 &mdash; Present</div>
+      <div>
+        <div class="job-title">Audio &amp; Speech Labeling Specialist / AI Annotator</div>
+        <div class="job-org">Mindrift (Toloka), Remote</div>
+        <ul>
+          <li>Reviewed AI-generated transcripts for accuracy, punctuation, speaker attribution, and context.</li>
+          <li>Assessed audio quality for clarity, noise level, and intelligibility across diverse speech datasets.</li>
+          <li>Labeled speech for intent classification, identifying speaker intent and utterance boundaries.</li>
+          <li>Completed bounding box, object detection, image classification, and segmentation tasks.</li>
+          <li>Rated and ranked competing AI responses to support preference learning pipelines.</li>
+          <li>Participated in red teaming and adversarial prompt evaluation to surface unsafe or misaligned outputs.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="job">
+      <div class="job-period">Mid 2024 &mdash; Present</div>
+      <div>
+        <div class="job-title">AI Training Data Contributor &amp; Prompt Specialist</div>
+        <div class="job-org">Turing, Remote</div>
+        <ul>
+          <li>Wrote and evaluated prompts and prompt-response pairs for model fine-tuning tasks.</li>
+          <li>Performed RLHF rating on correctness, helpfulness, safety, and instruction-following.</li>
+          <li>Completed transcription review and speech intent labeling for conversational AI training data.</li>
+          <li>Maintained consistent quality scores while adapting quickly to updated guidelines and new task formats.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="alt" id="skills">
+  <div class="wrap">
+    <div class="eyebrow">Skills</div>
+    <h2>Core competence, by category</h2>
+    <div class="skillgrid">
+      <div class="skillcard">
+        <h3><span class="sw" style="background:var(--green)"></span>Text &amp; data annotation</h3>
+        <div class="tags">
+          <span>Classification</span><span>NER</span><span>Sequence labeling</span><span>Content categorization</span><span>Relation extraction</span>
+        </div>
+      </div>
+      <div class="skillcard">
+        <h3><span class="sw" style="background:var(--blue)"></span>Image labeling</h3>
+        <div class="tags">
+          <span>Bounding box</span><span>Object detection</span><span>Image classification</span><span>Region segmentation</span><span>Keypoint annotation</span>
+        </div>
+      </div>
+      <div class="skillcard">
+        <h3><span class="sw" style="background:var(--pink)"></span>Audio &amp; speech</h3>
+        <div class="tags">
+          <span>Transcription review</span><span>Audio quality assessment</span><span>Speech labeling</span><span>Intent classification</span><span>Speaker diarization</span><span>Utterance tagging</span>
+        </div>
+      </div>
+      <div class="skillcard">
+        <h3><span class="sw" style="background:var(--amber)"></span>AI training tasks</h3>
+        <div class="tags">
+          <span>RLHF rating</span><span>Prompt writing</span><span>SFT pairs</span><span>Red teaming</span><span>Response ranking</span><span>Error analysis</span>
+        </div>
+      </div>
+      <div class="skillcard">
+        <h3><span class="sw" style="background:var(--green)"></span>Evaluation</h3>
+        <div class="tags">
+          <span>Response quality</span><span>Accuracy assessment</span><span>Relevance scoring</span><span>Safety evaluation</span><span>Tone &amp; coherence</span><span>Creative writing eval</span>
+        </div>
+      </div>
+      <div class="skillcard">
+        <h3><span class="sw" style="background:var(--blue)"></span>Language</h3>
+        <div class="tags">
+          <span>English, fluent, native-level written and verbal</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="achievements">
+  <div class="wrap">
+    <div class="eyebrow">Key achievements</div>
+    <h2>What the work has produced</h2>
+    <div class="achieve-list">
+      <div class="achieve-row">
+        <div class="num">01</div>
+        <p>Maintained consistent quality scores across Outlier, Mindrift, and Turing, spanning RLHF rating, prompt writing, image labeling, text annotation, transcription review, and audio quality assessment.</p>
+      </div>
+      <div class="achieve-row">
+        <div class="num">02</div>
+        <p>Delivered accurate transcription review and speech intent labeling across diverse audio datasets, supporting voice AI and conversational model training.</p>
+      </div>
+      <div class="achieve-row">
+        <div class="num">03</div>
+        <p>Produced prompt-response pairs and evaluations that consistently meet professional AI training data standards.</p>
+      </div>
+      <div class="achieve-row">
+        <div class="num">04</div>
+        <p>Rapidly onboarded to new task formats, audio labeling schemas, and evaluation guidelines across three major platforms, meeting accuracy and throughput requirements each time.</p>
+      </div>
+      <div class="achieve-row">
+        <div class="num">05</div>
+        <p>Built broad hands-on experience across text, image, and audio task types, enabling immediate contribution on any major US-based AI data platform.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="alt" id="details">
+  <div class="wrap">
+    <div class="eyebrow">Education &amp; availability</div>
+    <h2>Background and work status</h2>
+    <div class="infogrid">
+      <div class="infocard">
+        <h4>Education</h4>
+        <p>High School</p>
+        <p>Colegio Italiano de Guatemala</p>
+      </div>
+      <div class="infocard">
+        <h4>Availability &amp; authorization</h4>
+        <p>Authorized to work in the United States</p>
+        <p>Available immediately, full-time, part-time, contract, or freelance task-based</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer id="contact">
+  <div class="wrap">
+    <div class="cta-title">Ready to start immediately.</div>
+    <p class="cta-sub">Remote contract, freelance platform work, or task-based AI annotation and evaluation projects.</p>
+    <div class="cta-buttons">
+      <a class="btn btn-primary" href="mailto:Marroquin17@myyahoo.com">Email Mario</a>
+      <a class="btn btn-secondary" href="tel:+12063559702">Call +1 (206) 355-9702</a>
+    </div>
+    <div class="footer-note">Built for Mario Rivera, copyright 2026, all rights reserved.</div>
+  </div>
+</footer>
+
+</body>
+</html>
